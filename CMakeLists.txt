@@ -14,6 +14,9 @@ include(DefaultOptions)
 hunter_add_package(Boost COMPONENTS system filesystem)
 find_package(Boost CONFIG REQUIRED system filesystem)
 
+hunter_add_package(nlohmann_json)
+find_package(nlohmann_json CONFIG REQUIRED)
+
 include(DownloadAsio)
 include_directories(${ASIO_INCLUDE_DIR})
 
@@ -41,7 +44,7 @@ target_link_libraries(${HTTPC_NAME} ${LURLPARSER_LIBRARIES} ${HTTPC_LIB_NAME})
 ucm_add_dirs(src/httpfs TO SRC_LIST)
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 add_dependencies(${PROJECT_NAME} external_cxxopts)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LURLPARSER_LIBRARIES} ${HTTPC_LIB_NAME} Boost::system Boost::filesystem)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LURLPARSER_LIBRARIES} ${HTTPC_LIB_NAME} Boost::system Boost::filesystem nlohmann_json)
 
 #add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 #COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PROJECT_SOURCE_DIR}/sample_files" "${PROJECT_BINARY_DIR}/sample_files")

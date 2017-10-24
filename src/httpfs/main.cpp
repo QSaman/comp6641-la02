@@ -1,11 +1,25 @@
 #include <iostream>
-#include <boost/filesystem.hpp>
-using namespace boost::filesystem;
+#include <string>
+#include <exception>
 
-int main(int argc, char* argv[])
+#include "filesystem.h"
+#include <boost/filesystem.hpp>
+
+
+int main()
 {
-    std::string str = "/media/NixHddData/MyStuff/Star Wars/FanFilms/DARTH MAUL - Apprentice - A Star Wars Fan-Film-Djo_91jN3Pk.webm";
-  std::cout << str << " " << file_size(str) << '\n';
-  return 0;
+    try
+    {
+        //std::cout << textDirList("/media/NixHddData/MyStuff/Programming/Projects/C++/Comp6461/LabAssignment02/");
+        std::cout << jsonDirList("/media/NixHddData/MyStuff/test/force_users/", 2);
+    }
+    catch (const boost::filesystem::filesystem_error& ex)
+    {
+        std::cout << ex.what() << std::endl;
+    }
+    catch(std::exception ex)
+    {
+        std::cout << ex.what() << std::endl;
+    }
 }
  
