@@ -6,7 +6,7 @@
 #include <sstream>
 #include <memory>
 
-HttpClient::RepliedMessage HttpClient::sendGetCommand(const std::string& url, const std::string& header, bool verbose)
+HttpMessage HttpClient::sendGetCommand(const std::string& url, const std::string& header, bool verbose)
 {
     using LUrlParser::clParseURL;
     clParseURL lurl = clParseURL::ParseURL(url);
@@ -30,7 +30,7 @@ HttpClient::RepliedMessage HttpClient::sendGetCommand(const std::string& url, co
     return reply;
 }
 
-HttpClient::RepliedMessage HttpClient::sendPostCommand(const std::string& url, const std::string& data, const std::string& header, bool verbose)
+HttpMessage HttpClient::sendPostCommand(const std::string& url, const std::string& data, const std::string& header, bool verbose)
 {
     using LUrlParser::clParseURL;
     clParseURL lurl = clParseURL::ParseURL(url);
@@ -64,27 +64,64 @@ bool HttpClient::isTextBody(const std::string& mime)
    return false;
 }
 
-HttpClient::RepliedMessage HttpClient::extractMessage(const std::string& message)
+HttpMessage HttpClient::extractMessage(const std::string& message, bool read_body)
 {
     using namespace std;
     stringstream ss(message);
     string line;
-    RepliedMessage reply;
-    bool read_status_code = false;
+    HttpMessage http_msg;
+    bool read_message_type = false;
     //End-of-line in HTTP protocol is "\r\n" no matter what OS we are using
     //There is an empty line between header and body of message
     while (getline(ss, line) && line != "\r")
     {
         if (line.back() == '\r')
             line.pop_back();
-        if (!read_status_code && line.substr(0, 4) == "HTTP")
+        if (!read_message_type)
         {
-            read_status_code = true;
-            reply.protocol = "HTTP";
-            std::stringstream ss(line.substr(5));
-            ss >> reply.protocol_version >> reply.status_code;
-            ss.get(); //Remove space between status code and status message (200 OK)
-            std::getline(ss, reply.status_message);
+            read_message_type = true;
+            bool request_msg = false;
+            unsigned offset = 0;
+            if (line.substr(0, 4) == "HTTP")
+            {
+                http_msg.message_type = HttpMessageType::Reply;
+                http_msg.protocol = "HTTP";
+                std::stringstream ss(line.substr(5));
+                ss >> http_msg.protocol_version >> http_msg.status_code;
+                ss.get(); //Remove space between status code and status message (200 OK)
+                std::getline(ss, http_msg.status_message);
+            }
+            else if (line.substr(0, 3) == "GET")
+            {
+                http_msg.message_type = HttpMessageType::Get;
+                offset = 4;
+                request_msg = true;
+            }
+            else if (line.substr(0, 4) == "POST")
+            {
+                http_msg.message_type = HttpMessageType::Post;
+                offset = 5;
+                request_msg = true;
+            }
+            else
+            {
+                //TODO
+            }
+            if (request_msg)
+            {
+                //TODO
+                std::stringstream ss(line.substr(offset));
+                std::string tmp;
+                ss >> http_msg.resource_path >> tmp; //tmp = HTTP/1.0
+                auto index = tmp.find('/');
+                if (index == tmp.npos)
+                {
+                    //TODO
+                    continue;
+                }
+                http_msg.protocol = tmp.substr(0, index);
+                http_msg.protocol_version = tmp.substr(index + 1);
+            }
         }
         else
         {
@@ -96,15 +133,18 @@ HttpClient::RepliedMessage HttpClient::extractMessage(const std::string& message
                 if ((index + 1) < line.length() && line[index + 1] == ' ')
                     ++index;
                 value = line.substr(index + 1);
-                reply.http_header[key] = value;
+                http_msg.http_header[key] = value;
             }
         }
         line.push_back('\n');
-        reply.header += line;
+        http_msg.header += line;
     }
     //Reading body of message
-    reply.is_text_body = isTextBody(reply.http_header["Content-Type"]);
-    if (reply.is_text_body)
+    http_msg.is_text_body = isTextBody(http_msg.http_header["Content-Type"]);
+    if (!read_body)
+        return http_msg;
+
+    if (http_msg.is_text_body)
     {
         while (std::getline(ss, line))
         {
@@ -112,7 +152,7 @@ HttpClient::RepliedMessage HttpClient::extractMessage(const std::string& message
             if (!line.empty() && line.back() == '\r')
                 line.pop_back();
             line.push_back('\n');
-            reply.body += line;
+            http_msg.body += line;
         }
     }
     else
@@ -120,10 +160,10 @@ HttpClient::RepliedMessage HttpClient::extractMessage(const std::string& message
         //Since body is binary, we don't modify end-of-line characters
         char ch;
         while (ss.get(ch))
-            reply.body += ch;
+            http_msg.body += ch;
     }
 
-    return reply;
+    return http_msg;
 }
 
 void HttpClient::constructMessage(std::ostringstream& oss, LUrlParser::clParseURL& lurl, const std::string& header, const std::string& data)

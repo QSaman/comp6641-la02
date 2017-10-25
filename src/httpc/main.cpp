@@ -237,7 +237,7 @@ void test_post()
     std::cout << "reply: \n" << reply.body << std::endl;
 }
 
-void print_reply(HttpClient::RepliedMessage& reply)
+void print_reply(HttpMessage& reply)
 {
     if (output_file.empty())
     {
@@ -260,7 +260,7 @@ void print_reply(HttpClient::RepliedMessage& reply)
     }
 }
 
-bool check_redirect(HttpClient::RepliedMessage& reply)
+bool check_redirect(HttpMessage& reply)
 {
     if (reply.status_code < 300 || reply.status_code > 399)
         return false;
@@ -295,7 +295,7 @@ bool check_redirect(HttpClient::RepliedMessage& reply)
 void execute_user_request()
 {
     HttpClient client;
-    HttpClient::RepliedMessage reply;
+    HttpMessage reply;
     switch (command_type)
     {
     case CommandType::Get:
