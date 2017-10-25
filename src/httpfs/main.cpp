@@ -12,39 +12,33 @@ void handleClientHttpRequest(asio::ip::tcp::socket active_socket)
 {    
     asio::error_code ec;
     std::string http_header;
-    while (true)
+
+    asio::streambuf header_sb;
+    auto n = asio::read_until(active_socket, header_sb, "\r\n\r\n", ec);
+    if (ec && ec != asio::error::eof)
     {
-        asio::streambuf sb;
-        auto n = asio::read_until(active_socket, sb, "\r\n", ec);
-        if (ec == asio::error::eof)
-            break;
-        if (ec)
-        {
-            std::cerr << "Error in reading data (" << ec.value() << "): " << ec.message() << std::endl;
-            exit(ec.value());
-        }
-        auto bufs = sb.data();
-        auto line = std::string(asio::buffers_begin(bufs), asio::buffers_begin(bufs) + n);
-        std::cout << line << std::endl;
-        if (line == "\r\n")
-            break;
-        http_header += line;
+        std::cerr << "Error in reading data (" << ec.value() << "): " << ec.message() << std::endl;
+        exit(ec.value());
     }
+    auto bufs = header_sb.data();
+    http_header = std::string(asio::buffers_begin(bufs), asio::buffers_begin(bufs) + n);
+    std::cout << "header:" << std::endl << http_header << std::endl;
     HttpMessage http_message = HttpClient::extractMessage(http_header, false);
     std::string length_str = http_message.http_header["Content-Length"];
     std::istringstream iss(length_str);
     unsigned int length;
     iss >> length;
-    asio::streambuf sb;
-    auto n = asio::read(active_socket, sb, asio::transfer_exactly(length), ec);
+    asio::streambuf body_sb;
+    n = asio::read(active_socket, body_sb, asio::transfer_exactly(length), ec);
     if (ec || n != length)
     {
         std::cerr << "Error in reading data (" << ec.value() << "): " << ec.message() << std::endl;
         exit(ec.value());
     }
-    auto bufs = sb.data();
+    bufs = body_sb.data();
     auto body = std::string(asio::buffers_begin(bufs), asio::buffers_begin(bufs) + n);
     http_message.body = body;
+    std::cout << "body: " << std::endl << body << std::endl;
 }
 
 [[noreturn]] void runUdpServer(unsigned short port)
