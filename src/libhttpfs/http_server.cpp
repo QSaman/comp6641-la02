@@ -163,8 +163,6 @@ void readAndWrite(asio::ip::tcp::socket& active_socket)
     http_message.body = body;
     std::cout << "body: " << std::endl << body << std::endl;
     asio::write(active_socket, asio::buffer(prepareReplyMessage(http_message)));
-    if (buffer.size() > 0)
-        std::cerr << "Client sends more than one request without getting the replies" << std::endl;
 }
 
 void handleClientHttpRequest(asio::ip::tcp::socket active_socket) noexcept

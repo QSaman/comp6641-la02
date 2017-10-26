@@ -54,5 +54,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${LURLPARSER_LIBRARIES} Boost::syst
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PROJECT_SOURCE_DIR}/resources" "${PROJECT_BINARY_DIR}/resources")
 
+add_executable(partial_data test/partial_data.cpp)
+target_link_libraries(partial_data Threads::Threads)
+
 #install(TARGETS ${PROJECT_NAME} DESTINATION "bin")
 #install(DIRECTORY "${PROJECT_SOURCE_DIR}/sample_files" DESTINATION "bin")
