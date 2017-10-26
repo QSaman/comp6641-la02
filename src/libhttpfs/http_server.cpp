@@ -131,15 +131,21 @@ void handleClientHttpRequest(asio::ip::tcp::socket active_socket)
     asio::error_code ec;
     std::string http_header;
 
-    asio::streambuf header_sb;
-    auto n = asio::read_until(active_socket, header_sb, "\r\n\r\n", ec);
-    if (ec && ec != asio::error::eof)
+    while (true)
     {
-        std::cerr << "Error in reading data (" << ec.value() << "): " << ec.message() << std::endl;
-        exit(ec.value());
+        asio::streambuf header_sb(4);
+        auto n = asio::read(active_socket, header_sb, ec);
+        if (ec && ec != asio::error::eof)
+        {
+            std::cerr << "Error in reading data (" << ec.value() << "): " << ec.message() << std::endl;
+            exit(ec.value());
+        }
+        auto bufs = header_sb.data();
+        auto tmp = std::string(asio::buffers_begin(bufs), asio::buffers_begin(bufs) + n);
+        if (tmp == "\r\n\r\n" || tmp.empty())
+            break;
+        http_header += tmp;
     }
-    auto bufs = header_sb.data();
-    http_header = std::string(asio::buffers_begin(bufs), asio::buffers_begin(bufs) + n);
     std::cout << "header:" << std::endl << http_header << std::endl;
     HttpMessage http_message = HttpClient::extractMessage(http_header, false);
     std::string length_str = http_message.http_header["Content-Length"];
@@ -147,13 +153,13 @@ void handleClientHttpRequest(asio::ip::tcp::socket active_socket)
     unsigned int length;
     iss >> length;
     asio::streambuf body_sb(length);
-    n = asio::read(active_socket, body_sb, ec);
+    auto n = asio::read(active_socket, body_sb, ec);
     if ((ec && ec != asio::error::eof) || n != length)
     {
         std::cerr << "Error in reading data (" << ec.value() << "): " << ec.message() << std::endl;
         exit(ec.value());
     }
-    bufs = body_sb.data();
+    auto bufs = body_sb.data();
     auto body = std::string(asio::buffers_begin(bufs), asio::buffers_begin(bufs) + n);
     http_message.body = body;
     std::cout << "body: " << std::endl << body << std::endl;
