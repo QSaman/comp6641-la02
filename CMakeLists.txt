@@ -46,8 +46,8 @@ add_executable(${PROJECT_NAME} ${SRC_LIST})
 add_dependencies(${PROJECT_NAME} external_cxxopts)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LURLPARSER_LIBRARIES} ${HTTPC_LIB_NAME} Boost::system Boost::filesystem nlohmann_json)
 
-#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-#COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PROJECT_SOURCE_DIR}/sample_files" "${PROJECT_BINARY_DIR}/sample_files")
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+COMMAND "${CMAKE_COMMAND}" -E copy_directory "${PROJECT_SOURCE_DIR}/resources" "${PROJECT_BINARY_DIR}/resources")
 
 #install(TARGETS ${PROJECT_NAME} DESTINATION "bin")
 #install(DIRECTORY "${PROJECT_SOURCE_DIR}/sample_files" DESTINATION "bin")

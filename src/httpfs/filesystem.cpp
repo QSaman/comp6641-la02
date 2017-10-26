@@ -73,3 +73,15 @@ std::string xmlDirList(const std::string& dir_path)
 {
     return "";
 }
+
+std::string fileContent(const std::string& file_path)
+{
+    std::ifstream file;
+
+    file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+    file.open(file_path);
+
+    std::ostringstream os;
+    os << file.rdbuf();
+    return os.str();
+}

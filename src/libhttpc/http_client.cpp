@@ -166,6 +166,24 @@ HttpMessage HttpClient::extractMessage(const std::string& message, bool read_bod
     return http_msg;
 }
 
+std::string HttpClient::constructServerMessage(const std::string partial_header, const std::string body)
+{
+    std::ostringstream oss;
+    auto tmp_len = partial_header.length() - 2;
+    std::string header;
+    if (tmp_len > 0 && partial_header.substr(tmp_len) == "\r\n")
+        header = partial_header.substr(0, tmp_len);
+    else
+        header = partial_header;
+    oss << header;
+    if (!body.empty())
+    {
+        oss << "\r\nContent-Length: " << body.length();
+        oss << "\r\n\r\n" << body;
+    }
+    return oss.str();
+}
+
 void HttpClient::constructMessage(std::ostringstream& oss, LUrlParser::clParseURL& lurl, const std::string& header, const std::string& data)
 {
     oss << lurl.m_Path;

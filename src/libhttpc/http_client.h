@@ -32,6 +32,7 @@ public:
     HttpMessage sendPostCommand(const std::string& url, const std::string& data = "",
                                 const std::string& header = "", bool verbose = false);
     static HttpMessage extractMessage(const std::string& message, bool read_body = true);
+    static std::string constructServerMessage(const std::string partial_header, const std::string body);
 private:
     static bool isTextBody(const std::string& mime);
     void constructMessage(std::ostringstream& oss, LUrlParser::clParseURL& lurl, const std::string& header, const std::string& data);
