@@ -6,11 +6,12 @@
 #include <asio.hpp>
 #include <iostream>
 #include <thread>
+#include <fstream>
 
-static std::string root_dir_path = "./resources/https_root";
+std::string root_dir_path = "./resources/https_root";
 static int level = 0;
 
-std::string generateHtmlErrorMessage(const char* msg, const std::string& title, const std::string& header)
+std::string generateHtmlMessage(const char* msg, const std::string& title, const std::string& header)
 {
     std::ostringstream oss;
     using std::endl;
@@ -34,9 +35,9 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
         }
         catch(const boost::filesystem::filesystem_error& ex)
         {
-            std::string body(generateHtmlErrorMessage(ex.what(), "404 Not Found",
+            std::string body(generateHtmlMessage(ex.what(), "500 Internal Server Error",
                                                       "Default directory does not exists on the server"));
-            std::string partial_header = "HTTP/1.0 404 NOT FOUND\r\n"
+            std::string partial_header = "HTTP/1.0 500 Internal Server Error\r\n"
                                          "Content-Type: text/html\r\n";
             return constructServerMessage(partial_header, body);
         }
@@ -51,36 +52,78 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
         std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain";
         return constructServerMessage(partial_header, body);
     }
-    catch (const boost::filesystem::filesystem_error& ex)
+    catch (const filesystem_error& ex)
     {
-        std::string body(generateHtmlErrorMessage(ex.what(), "404 Not Found",
+        std::string body(generateHtmlMessage(ex.what(), "404 Not Found",
                                                   "File does not exist"));
 
         std::string partial_header = "HTTP/1.0 404 NOT FOUND\r\n"
-                                     "Content-Type: text/html\r\n";
+                                     "Content-Type: text/html";
         return constructServerMessage(partial_header, body);
     }
 }
 
-std::string httpPostMessage(const HttpMessage& client_msg)
+std::string httpPostMessage(const HttpMessage& client_msg) noexcept
 {
+    using namespace boost::filesystem;
+    path dir_path(root_dir_path);
+    path file_path(client_msg.resource_path);
+    try
+    {
+        path full_path = dir_path / file_path;
+        bool is_exists = exists(full_path);
+        if (is_exists && !is_regular_file(full_path))
+        {
+            std::string partial_header = "HTTP/1.0 400 Bad Request\r\n"
+                                         "Content-Type: text/html";
+            std::string msg = std::string(full_path.c_str()) + " is not a regular file";
+            std::string body = generateHtmlMessage(msg.c_str(), "400 Bad Request", "No regular file");
+            return constructServerMessage(partial_header, body);
+        }
+        create_directories(full_path.parent_path());
+        std::ofstream out;
+        out.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+        if (client_msg.is_text_body)
+            out.open(full_path.c_str());
+        else
+            out.open(full_path.c_str(), std::ofstream::binary);
+        out << client_msg.body;
+        std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html";
+        std::string body = generateHtmlMessage("File created/updated successfully!",
+                                   "Operation Successfull", "Operation Successfull");
+        return constructServerMessage(partial_header, body);
+    }
+    catch(const filesystem_error& ex)
+    {
+        std::string body = generateHtmlMessage(ex.what(), "500 Internal Server Error", "File Operation Failed");
+        std::string partial_header = "HTTP/1.0 500 Internal Server Error\r\n"
+                                     "Content-Type: text/html";
+        return constructServerMessage(partial_header, body);
+    }
+    catch(const std::ofstream::failure& ex)
+    {
+        std::string body = generateHtmlMessage(ex.what(), "500 Internal Server Error", "Error in File IO Operations");
+        std::string partial_header = "HTTP/1.0 500 Internal Server Error\r\n"
+                                     "Content-Type: text/html";
+        return constructServerMessage(partial_header, body);
+    }
 }
 
 std::string prepareReplyMessage(const HttpMessage& client_msg) noexcept
 {
-    std::string reply_msg;
     switch (client_msg.message_type)
     {
     case HttpMessageType::Get:
         return httpGetMessage(client_msg);
     case HttpMessageType::Post:
-        break;
+        return httpPostMessage(client_msg);
     default:
-        //TODO
-        break;
+        std::string body = generateHtmlMessage("Operation is not implemented",
+                                               "501 Not Implemented", "501 Not Implemented");
+        std::string partial_header = "HTTP/1.0 501 Not Implemented\r\n"
+                                     "Content-Type: text/html";
+        return constructServerMessage(partial_header, body);
     }
-
-    return reply_msg;
 }
 
 void handleClientHttpRequest(asio::ip::tcp::socket active_socket)
@@ -103,9 +146,9 @@ void handleClientHttpRequest(asio::ip::tcp::socket active_socket)
     std::istringstream iss(length_str);
     unsigned int length;
     iss >> length;
-    asio::streambuf body_sb;
-    n = asio::read(active_socket, body_sb, asio::transfer_exactly(length), ec);
-    if (ec || n != length)
+    asio::streambuf body_sb(length);
+    n = asio::read(active_socket, body_sb, ec);
+    if ((ec && ec != asio::error::eof) || n != length)
     {
         std::cerr << "Error in reading data (" << ec.value() << "): " << ec.message() << std::endl;
         exit(ec.value());
@@ -123,6 +166,7 @@ void handleClientHttpRequest(asio::ip::tcp::socket active_socket)
 {
     using asio::ip::tcp;
     asio::io_service io_service;
+    std::cout << "Listening on port " << port << std::endl;
     tcp::acceptor passive_socket(io_service, tcp::endpoint(tcp::v4(), port));
     while (true)
     {

@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <asio.hpp>
 
+extern std::string root_dir_path;
 
 int main()
 {
