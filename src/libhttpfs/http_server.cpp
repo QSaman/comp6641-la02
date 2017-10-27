@@ -12,17 +12,32 @@
 
 void readAndWrite(asio::ip::tcp::socket& active_socket)
 {
+    auto remote_address = active_socket.remote_endpoint().address();
+    auto remote_port = active_socket.remote_endpoint().port();
+    std::ostringstream oss;
+    oss << remote_address << ':' << remote_port;
+    auto remote_tcp_info = oss.str();
+
+    if (verbose)
+        std::cout << "Accept connection from " << remote_tcp_info << std::endl;
+
     std::string http_header;
     asio::streambuf buffer;
     auto n = asio::read_until(active_socket, buffer, "\r\n\r\n");
     auto iter = asio::buffers_begin(buffer.data());
     http_header = std::string(iter, iter + static_cast<long>(n));
-    std::cout << "header:" << std::endl << http_header << std::endl;
+    if (verbose)
+        std::cout << "Received header (" << remote_tcp_info << "): " << std::endl
+                  << http_header << std::endl;
     HttpMessage http_message = HttpClient::extractMessage(http_header, false);
+    http_message.resource_path = url_decode(http_message.resource_path);
     std::string length_str = http_message.http_header["Content-Length"];
-    std::istringstream iss(length_str);
-    unsigned int length;
-    iss >> length;    
+    unsigned int length = 0;
+    if (!length_str.empty())
+    {
+        std::istringstream iss(length_str);
+        iss >> length;
+    }
     //We need to use the same buffer after consuming the header data:
     //It is important to remember that there may be additional data after the delimiter.
     //For more information: http://think-async.com/Asio/asio-1.11.0/doc/asio/overview/core/line_based.html
@@ -44,8 +59,19 @@ void readAndWrite(asio::ip::tcp::socket& active_socket)
         buffer.consume(num_bytes);
     }
     http_message.body = body;
-    std::cout << "body: " << std::endl << body << std::endl;
-    asio::write(active_socket, asio::buffer(prepareReplyMessage(http_message)));
+    if (verbose && http_message.is_text_body)
+        std::cout << "Received body(" << remote_tcp_info
+                  << "): "<< std::endl << body << std::endl;
+    auto reply_msg = prepareReplyMessage(http_message);
+    if (verbose)
+        std::cout << "response message(" << remote_address << ':' << remote_port
+                  << "): " << std::endl << reply_msg << std::endl;
+    asio::write(active_socket, asio::buffer(reply_msg));
+    if (buffer.size())
+    {
+        std::cerr << remote_tcp_info << " sent " << buffer.size() << " extra bytes!"
+                  << std::endl;
+    }
 }
 
 void handleClientHttpRequest(asio::ip::tcp::socket active_socket) noexcept
@@ -69,6 +95,7 @@ void runUdpServer(unsigned short port)
     using asio::ip::tcp;
     asio::io_service io_service;
     std::cout << "Listening on port " << port << std::endl;
+    std::cout << "root directory is: " << root_dir_path << std::endl << std::endl;
     try
     {
         tcp::acceptor passive_socket(io_service, tcp::endpoint(tcp::v4(), port));

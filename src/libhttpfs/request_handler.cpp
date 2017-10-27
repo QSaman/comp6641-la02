@@ -10,7 +10,7 @@
 #include <fstream>
 #include <algorithm>
 
-std::string root_dir_path = "./resources/https_root";
+extern std::string root_dir_path;
 static int level = 0;
 
 std::string constructServerMessage(const std::string partial_header, const std::string body)
@@ -47,12 +47,17 @@ std::string generateHtmlMessage(const char* msg, const std::string& title, const
 
 std::string httpGetMessage(const HttpMessage& client_msg) noexcept
 {
-    if (client_msg.resource_path == "/")
+    using namespace boost::filesystem;
+    path dir_path(root_dir_path);
+    path file_path(client_msg.resource_path);
+    path full_path = dir_path / file_path;
+
+    if (client_msg.resource_path == "/" || is_directory(full_path))
     {
         try
         {
-            std::string body = jsonDirList(root_dir_path, level);
-            std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: application/json";
+            std::string body = htmlDirList(root_dir_path, client_msg.resource_path);//jsonDirList(root_dir_path, level);
+            std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html";
             return constructServerMessage(partial_header, body);
         }
         catch(const boost::filesystem::filesystem_error& ex)
@@ -64,15 +69,14 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
             return constructServerMessage(partial_header, body);
         }
     }
-    using namespace boost::filesystem;
-    path dir_path(root_dir_path);
-    path file_path(client_msg.resource_path);
     try
-    {
-        path full_path = dir_path / file_path;
+    {        
         std::string path = full_path.c_str();
-        std::string body = fileContent(path);
-        std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain";
+        std::string body = fileContent(path, !client_msg.is_text_body);
+        auto mime_type = getFileMimeType(path);
+        if (mime_type.empty())
+            mime_type = "text/plain";
+        std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: " + mime_type;
         return constructServerMessage(partial_header, body);
     }
     catch (const filesystem_error& ex)
