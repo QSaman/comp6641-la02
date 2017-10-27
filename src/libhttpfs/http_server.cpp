@@ -62,6 +62,16 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
                                      "Content-Type: text/html";
         return constructServerMessage(partial_header, body);
     }
+    catch (const std::ifstream::failure&)
+    {
+        std::string what = client_msg.resource_path + " doesn't exist!";
+        std::string body(generateHtmlMessage(what.c_str(), "404 Not Found",
+                                                  "File does not exist"));
+
+        std::string partial_header = "HTTP/1.0 404 NOT FOUND\r\n"
+                                     "Content-Type: text/html";
+        return constructServerMessage(partial_header, body);
+    }
 }
 
 std::string httpPostMessage(const HttpMessage& client_msg) noexcept

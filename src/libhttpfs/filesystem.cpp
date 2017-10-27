@@ -79,9 +79,8 @@ std::string fileContent(const std::string& file_path)
     std::ifstream file;
 
     file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
-    file.open(file_path);
-
     std::ostringstream os;
+    file.open(file_path);
     os << file.rdbuf();
     return os.str();
 }
