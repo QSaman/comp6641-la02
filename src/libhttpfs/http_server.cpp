@@ -16,7 +16,7 @@ void readAndWrite(asio::ip::tcp::socket& active_socket)
     asio::streambuf buffer;
     auto n = asio::read_until(active_socket, buffer, "\r\n\r\n");
     auto iter = asio::buffers_begin(buffer.data());
-    http_header = std::string(iter, iter + n);
+    http_header = std::string(iter, iter + static_cast<long>(n));
     std::cout << "header:" << std::endl << http_header << std::endl;
     HttpMessage http_message = HttpClient::extractMessage(http_header, false);
     std::string length_str = http_message.http_header["Content-Length"];
@@ -40,7 +40,7 @@ void readAndWrite(asio::ip::tcp::socket& active_socket)
     {
         n = asio::read(active_socket, buffer, asio::transfer_exactly(num_bytes));
         iter = asio::buffers_begin(buffer.data());
-        body += std::string(iter, iter + num_bytes);
+        body += std::string(iter, iter + static_cast<long>(num_bytes));
         buffer.consume(num_bytes);
     }
     http_message.body = body;

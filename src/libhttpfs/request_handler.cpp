@@ -23,6 +23,8 @@ std::string constructServerMessage(const std::string partial_header, const std::
     else
         header = partial_header;
     oss << header;
+    oss << "\r\nConnection: close" << "\r\nServer: httpfs/0.0.1";
+    oss << "\r\nDate: " << now();
     if (!body.empty())
     {
         oss << "\r\nContent-Length: " << body.length();
@@ -67,7 +69,8 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
     path file_path(client_msg.resource_path);
     try
     {
-        std::string path = (dir_path / file_path).c_str();
+        path full_path = dir_path / file_path;
+        std::string path = full_path.c_str();
         std::string body = fileContent(path);
         std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain";
         return constructServerMessage(partial_header, body);
@@ -154,4 +157,18 @@ std::string prepareReplyMessage(const HttpMessage& client_msg) noexcept
                                      "Content-Type: text/html";
         return constructServerMessage(partial_header, body);
     }
+}
+
+std::string now()
+{
+    const char* fmt = "%a, %d %b %Y %H:%M:%S %Z";
+    std::time_t t = std::time(NULL);
+    char mbstr[100];
+    if (std::strftime(mbstr, sizeof(mbstr), fmt, std::gmtime(&t)))
+        return std::string(mbstr);
+
+    auto start = std::chrono::system_clock::now();
+    std::time_t time = std::chrono::system_clock::to_time_t(start);
+    std::string ret(std::ctime(&time));
+    return ret;
 }

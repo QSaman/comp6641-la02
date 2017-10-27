@@ -21,7 +21,13 @@ HttpMessage HttpClient::sendGetCommand(const std::string& url, const std::string
     auto message = oss.str();
     if (verbose)
         std::cout << "GET message:" << std::endl << message << "------------" << std::endl;
-    auto connection = TcpConnectionFactory::createInstance(lurl.m_Host, 80);
+    int port = 80;
+    if (!lurl.m_Port.empty())
+    {
+        std::stringstream ss(lurl.m_Port);
+        ss >> port;
+    }
+    auto connection = TcpConnectionFactory::createInstance(lurl.m_Host, port);
     connection->connect();
     connection->write(message);
     auto reply = extractMessage(connection->read());
@@ -43,9 +49,15 @@ HttpMessage HttpClient::sendPostCommand(const std::string& url, const std::strin
     oss << "POST /";
     constructMessage(oss, lurl, header, data);
     auto message = oss.str();
+    int port = 80;
+    if (!lurl.m_Port.empty())
+    {
+        std::stringstream ss(lurl.m_Port);
+        ss >> port;
+    }
     if (verbose)
         std::cout << "POST message:" << std::endl << message << "------------" << std::endl;
-    auto connection = TcpConnectionFactory::createInstance(lurl.m_Host, 80);
+    auto connection = TcpConnectionFactory::createInstance(lurl.m_Host, port);
     connection->connect();
     connection->write(message);
     auto reply = extractMessage(connection->read());
