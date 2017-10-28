@@ -46,6 +46,14 @@ std::string generateHtmlMessage(const char* msg, const std::string& title, const
     return oss.str();
 }
 
+bool matchMimeFilterList(const std::string& mime_type)
+{
+    for (const auto& val : mime_filter_list)
+        if (mime_type.find(val) != mime_type.npos)
+            return true;
+    return false;
+}
+
 std::string httpGetMessage(const HttpMessage& client_msg) noexcept
 {
     using namespace boost::filesystem;
@@ -111,6 +119,11 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
         if (mime_type.empty())
             mime_type = "text/plain";
         std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: " + mime_type;
+        if (matchMimeFilterList(mime_type))
+        {
+            partial_header += "\r\nContent-Disposition: attachment; filename=\"";
+            partial_header += std::string(full_path.filename().c_str()) + "\"";
+        }
         return constructServerMessage(partial_header, body);
     }
     catch (const filesystem_error& ex)

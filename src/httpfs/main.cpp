@@ -3,6 +3,7 @@
 #include <exception>
 #include <thread>
 #include <cxxopts.hpp>
+#include <vector>
 
 #include "../libhttpfs/http_server.h"
 #include "../libhttpfs/filesystem.h"
@@ -15,10 +16,12 @@ extern std::string mime_file;
 extern std::string icons_dir_path;
 extern bool no_cache;
 extern int children_level;
+extern std::vector<std::string> mime_filter_list;
 
 std::string root_dir_path = "./resources/httpfs_root";
 std::string icons_dir_path = "./resources";
 std::string mime_file = "./resources/mime.types";
+std::vector<std::string> mime_filter_list;
 static cxxopts::Options options("httpfs", "httpfs is a simple file server.");
 bool verbose = false;
 bool no_cache = false;
@@ -47,7 +50,12 @@ void cli(int argc, char* argv[])
             ("c,no-cache", "Tell the client to not cache any data. It's useful for debugging"
                            " purposes (e.g. testing concurrency).")
             ("l,level", "The level of directory tree. This is meaningful when client request"
-             "for JSON or XML output. The default is 0", cxxopts::value<int>(), "num");
+             "for JSON or XML output. The default is 0", cxxopts::value<int>(), "num")
+            ("C,content-disposal", "A mime type which server suggest to client to not show them inline"
+                                   " by using Content-Disposition in response header. You can use this "
+                                   "parameter multiple times for different filters. For example if you use"
+                                   "\"video\" as filter, you suggest to save all type of video files",
+             cxxopts::value<std::vector<std::string>>(), "mime_type");
     options.parse(argc, argv);
 
     if (options.count("help"))
@@ -64,6 +72,8 @@ void cli(int argc, char* argv[])
         no_cache = true;
     if (options.count("level"))
         children_level = options["level"].as<int>();
+    if (options.count("content-disposal"))
+        mime_filter_list = options["content-disposal"].as<std::vector<std::string>>();
 }
 
 int main(int argc, char* argv[])
