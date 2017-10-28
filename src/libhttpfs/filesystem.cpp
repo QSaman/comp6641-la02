@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <unordered_map>
 
 #include <boost/filesystem.hpp>
@@ -153,7 +154,11 @@ std::string human_readable_file_size(const unsigned long file_size)
         size /= 1024;
     }
     ostringstream oss;
-    oss << size << unit;
+    if (std::floor(size - 0.5) < size)
+        oss << std::setprecision(0);
+    else
+        oss << std::setprecision(1);
+    oss  << std::fixed << size << unit;
     return oss.str();
 }
 
@@ -229,10 +234,10 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
     oss << endl
         << "<html>" << endl
             << "<head>" << endl
-                << "<title>Index of " << relative_dir_path << "</title>" << endl
+                << "<title>Index of " << file_path.filename() << "</title>" << endl
             << "</head>" << endl
             << "<body>" << endl
-            << "<h1>Index of " << relative_dir_path << "</h1>" << endl
+            << "<h1>Index of " << file_path.filename() << "</h1>" << endl
             << "<table>" << endl;
     oss << R"(<tr><th valign="top"><img src="/icons/blank.gif" alt="[ICO]"></th><th>Name</th><th>Last modified</th><th>Size</th><th>Description</th></tr>)" << endl;
     oss << R"(<tr><th colspan="5"><hr></th></tr>)" << endl;
@@ -254,6 +259,7 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
         {
             icon_path = "/icons/folder.gif";
             alt = "[DIR]";
+            file_size_str = "-";
         }
         else if (is_regular_file(f))
         {
@@ -276,6 +282,8 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
                 alt = "[VID]";
             }
         }
+        if (file_name.length() > 23)
+            file_name = file_name.substr(0, 20) + "..>";
         oss << R"(<tr><td valign="top"><img src=")" << icon_path
             << R"(" alt=")" << alt << R"("></td><td><a href=")"
             << link_name << "\">" <<  file_name << R"(</a>               </td><td align="right">)" << modified_time

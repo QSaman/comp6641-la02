@@ -12,8 +12,10 @@
 
 extern std::string root_dir_path;
 extern std::string mime_file;
+extern std::string icons_dir_path;
 
 std::string root_dir_path = "./resources/https_root";
+std::string icons_dir_path = "./resources";
 std::string mime_file = "./resources/mime.types";
 static cxxopts::Options options("httpfs", "httpfs is a simple file server.");
 bool verbose = false;

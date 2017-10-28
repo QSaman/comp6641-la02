@@ -48,7 +48,11 @@ std::string generateHtmlMessage(const char* msg, const std::string& title, const
 std::string httpGetMessage(const HttpMessage& client_msg) noexcept
 {
     using namespace boost::filesystem;
-    path dir_path(root_dir_path);
+    path dir_path;
+    if (client_msg.resource_path.substr(0, 6) == "/icons")
+        dir_path = icons_dir_path;
+    else
+        dir_path = root_dir_path;
     path file_path(client_msg.resource_path);
     path full_path = dir_path / file_path;
 

@@ -64,8 +64,16 @@ void readAndWrite(asio::ip::tcp::socket& active_socket)
                   << "): "<< std::endl << body << std::endl;
     auto reply_msg = prepareReplyMessage(http_message);
     if (verbose)
-        std::cout << "response message(" << remote_address << ':' << remote_port
-                  << "): " << std::endl << reply_msg << std::endl;
+    {
+        HttpMessage tmp = HttpClient::extractMessage(reply_msg, false);
+        std::cout << "Response message header (" << remote_tcp_info << "): " << tmp.header << std::endl;
+        if (tmp.is_text_body)
+        {
+            tmp = HttpClient::extractMessage(reply_msg, true);
+            std::cout << "Response message body (" << remote_tcp_info
+                      << "): " << std::endl << tmp.body << std::endl;
+        }
+    }
     asio::write(active_socket, asio::buffer(reply_msg));
     if (buffer.size())
     {
