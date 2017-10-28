@@ -25,6 +25,8 @@ std::string constructServerMessage(const std::string partial_header, const std::
     oss << header;
     oss << "\r\nConnection: close" << "\r\nServer: httpfs/0.0.1";
     oss << "\r\nDate: " << now();
+    if (no_cache)
+        oss << "\r\nPragma: no-cache\r\nExpires: 0";
     if (!body.empty())
     {
         oss << "\r\nContent-Length: " << body.length();

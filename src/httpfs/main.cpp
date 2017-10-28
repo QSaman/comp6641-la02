@@ -13,12 +13,14 @@
 extern std::string root_dir_path;
 extern std::string mime_file;
 extern std::string icons_dir_path;
+extern bool no_cache;
 
-std::string root_dir_path = "./resources/https_root";
+std::string root_dir_path = "./resources/httpfs_root";
 std::string icons_dir_path = "./resources";
 std::string mime_file = "./resources/mime.types";
 static cxxopts::Options options("httpfs", "httpfs is a simple file server.");
 bool verbose = false;
+bool no_cache = false;
 static unsigned short port = 8080;
 
 [[noreturn]] void printHelp()
@@ -39,7 +41,8 @@ void cli(int argc, char* argv[])
             ("h,help", "Show this page")
             ("m,mime-file", "A file containing the mapping between file extension and MIME types"
                             " in Apache format. The default is resources/mime.types",
-             cxxopts::value<std::string>(), "mime_file");
+             cxxopts::value<std::string>(), "mime_file")
+            ("c,no-cache", "Tell the client to not cache any data. It's useful for debugging purposes (e.g. testing concurrency).");
     options.parse(argc, argv);
 
     if (options.count("help"))
@@ -52,6 +55,8 @@ void cli(int argc, char* argv[])
         root_dir_path = options["dir"].as<std::string>();
     if (options.count("mime-file"))
         mime_file = options["mime-file"].as<std::string>();
+    if (options.count("no-cache"))
+        no_cache = true;
 }
 
 int main(int argc, char* argv[])
