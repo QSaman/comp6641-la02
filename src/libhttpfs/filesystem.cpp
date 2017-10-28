@@ -189,15 +189,15 @@ std::string url_encode(const std::string &value)
 }
 
 std::string url_decode(const std::string &value)
-{
-    std::stringstream escaped;
-    std::string ret;
+{    
+    std::string ret;    
     for (unsigned i = 0; i < value.length();)
     {
         if (value[i] == '%')
-        {
+        {            
             std::string hex_str{value[i + 1], value[i + 2]};
-            escaped << hex_str;
+            std::stringstream escaped;
+            escaped  << std::hex << hex_str;
             int ch;
             escaped >> std::hex >> ch;
             ret.push_back(static_cast<char>(ch));

@@ -107,6 +107,14 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
 std::string httpPostMessage(const HttpMessage& client_msg) noexcept
 {
     using namespace boost::filesystem;
+    if (client_msg.resource_path.substr(0, 6) == "/icons")
+    {
+        std::string what = "You are not allowed to change in /icons directory!";
+        std::string body = generateHtmlMessage(what.c_str(), "403 Forbiddenr", "Unauthorized operation");
+        std::string partial_header = "HTTP/1.0 403 Forbidden\r\n"
+                                     "Content-Type: text/html";
+        return constructServerMessage(partial_header, body);
+    }
     path dir_path(root_dir_path);
     path file_path(client_msg.resource_path);
     try
