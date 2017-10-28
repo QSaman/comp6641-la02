@@ -6,7 +6,7 @@ extern std::string mime_file;
 
 std::string textDirList(const std::string& dir_path);
 std::string jsonDirList(const std::string& dir_path, int level = 0);
-std::string xmlDirList(const std::string& dir_path);
+std::string xmlDirList(const std::string& dir_path, int level);
 std::string htmlDirList(const std::string& root_dir_path, const std::string& relative_dir_path);
 std::string fileContent(const std::string& file_path, bool binary = false);
 std::string getFileMimeType(const std::string& file_path);

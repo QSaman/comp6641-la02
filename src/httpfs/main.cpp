@@ -14,6 +14,7 @@ extern std::string root_dir_path;
 extern std::string mime_file;
 extern std::string icons_dir_path;
 extern bool no_cache;
+extern int children_level;
 
 std::string root_dir_path = "./resources/httpfs_root";
 std::string icons_dir_path = "./resources";
@@ -21,6 +22,7 @@ std::string mime_file = "./resources/mime.types";
 static cxxopts::Options options("httpfs", "httpfs is a simple file server.");
 bool verbose = false;
 bool no_cache = false;
+int children_level = 0;
 static unsigned short port = 8080;
 
 [[noreturn]] void printHelp()
@@ -42,7 +44,10 @@ void cli(int argc, char* argv[])
             ("m,mime-file", "A file containing the mapping between file extension and MIME types"
                             " in Apache format. The default is resources/mime.types",
              cxxopts::value<std::string>(), "mime_file")
-            ("c,no-cache", "Tell the client to not cache any data. It's useful for debugging purposes (e.g. testing concurrency).");
+            ("c,no-cache", "Tell the client to not cache any data. It's useful for debugging"
+                           " purposes (e.g. testing concurrency).")
+            ("l,level", "The level of directory tree. This is meaningful when client request"
+             "for JSON or XML output. The default is 0", cxxopts::value<int>(), "num");
     options.parse(argc, argv);
 
     if (options.count("help"))
@@ -57,6 +62,8 @@ void cli(int argc, char* argv[])
         mime_file = options["mime-file"].as<std::string>();
     if (options.count("no-cache"))
         no_cache = true;
+    if (options.count("level"))
+        children_level = options["level"].as<int>();
 }
 
 int main(int argc, char* argv[])

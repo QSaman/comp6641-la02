@@ -11,7 +11,6 @@
 #include <algorithm>
 
 extern std::string root_dir_path;
-static int level = 0;
 
 std::string constructServerMessage(const std::string partial_header, const std::string body)
 {
@@ -62,8 +61,32 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
     {
         try
         {
-            std::string body = htmlDirList(root_dir_path, client_msg.resource_path);//jsonDirList(root_dir_path, level);
-            std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html";
+            std::string body;
+            std::string partial_header;
+            auto iter = client_msg.http_header.find("Accept");
+            std::string accept;
+            if (iter != client_msg.http_header.end())
+                accept = iter->second;
+            bool send_html = false;
+            if (accept.find("text/html") != accept.npos)
+                send_html = true;
+            else if (accept.find("application/json") != accept.npos)
+            {
+                body = jsonDirList(root_dir_path, children_level);
+                partial_header = "HTTP/1.1 200 OK\r\nContent-Type: application/json";
+            }
+            else if (accept.find("application/xml") != accept.npos)
+            {
+                body = xmlDirList(root_dir_path, children_level);
+                partial_header = "HTTP/1.1 200 OK\r\nContent-Type: application/xml";
+            }
+            else
+                send_html = true;
+            if (send_html)
+            {
+                body = htmlDirList(root_dir_path, client_msg.resource_path);
+                partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html";
+            }
             return constructServerMessage(partial_header, body);
         }
         catch(const boost::filesystem::filesystem_error& ex)

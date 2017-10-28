@@ -7,6 +7,8 @@
 #include <unordered_map>
 
 #include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 #include <nlohmann/json.hpp>
 
 static std::unordered_map<std::string, std::string> ext2mime;
@@ -36,7 +38,7 @@ std::string textDirList(const std::string& dir_path)
     return ret;
 }
 
-nlohmann::json jsonDirList(boost::filesystem::path p, int level)
+nlohmann::json jsonDirList(const boost::filesystem::path& p, int level)
 {
     using namespace boost::filesystem;
     using json = nlohmann::json;
@@ -74,9 +76,47 @@ std::string jsonDirList(const std::string& dir_path, int level)
     return ret;
 }
 
-std::string xmlDirList(const std::string& dir_path)
+boost::property_tree::ptree xmlDirList(const boost::filesystem::path& p, int level)
 {
-    return "";
+    namespace pt = boost::property_tree;
+    namespace fs = boost::filesystem;
+
+    pt::ptree root;
+    for (fs::directory_entry& f : fs::directory_iterator(p))
+    {
+        std::string node_name = "unknown";
+        bool directory = false;
+        pt::ptree node;
+        if (fs::is_directory(f))
+        {
+            node_name = "directory";
+            directory = true;
+        }
+        else if (fs::is_regular_file(f))
+            node_name = "file";
+        node.put("name", f.path().filename().c_str());
+        root.add_child(node_name, node);
+        if (directory && level > 0)
+        {
+            auto child = xmlDirList(f.path(), level - 1);
+            root.add_child(node_name + "." + "children", child);
+        }
+    }
+    return root;
+}
+
+std::string xmlDirList(const std::string& dir_path, int level)
+{
+    namespace fs = boost::filesystem;
+    namespace pt = boost::property_tree;
+
+    fs::path path(dir_path);
+    pt::ptree root;
+    root.add_child("file_system", xmlDirList(path, level));
+    std::stringstream ss;
+    boost::property_tree::xml_writer_settings<std::string> settings(' ', 4);
+    pt::write_xml(ss, root, settings);
+    return ss.str();
 }
 
 std::string fileContent(const std::string& file_path, bool binary)
