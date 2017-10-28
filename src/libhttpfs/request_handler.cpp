@@ -72,13 +72,18 @@ std::string httpGetMessage(const HttpMessage& client_msg) noexcept
                 send_html = true;
             else if (accept.find("application/json") != accept.npos)
             {
-                body = jsonDirList(root_dir_path, children_level);
+                body = jsonDirList(full_path.c_str(), children_level);
                 partial_header = "HTTP/1.1 200 OK\r\nContent-Type: application/json";
             }
             else if (accept.find("application/xml") != accept.npos)
             {
-                body = xmlDirList(root_dir_path, children_level);
+                body = xmlDirList(full_path.c_str(), children_level);
                 partial_header = "HTTP/1.1 200 OK\r\nContent-Type: application/xml";
+            }
+            else if (accept.find("text/plain") != accept.npos)
+            {
+                body = textDirList(full_path.c_str());
+                partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain";
             }
             else
                 send_html = true;
