@@ -259,6 +259,7 @@ std::string modifiedTime2String(struct std::tm* tm)
     return oss.str();
 }
 
+//TODO Support UTF8 in Windows!
 std::string htmlDirList(const std::string& root_dir_path, const std::string& relative_dir_path)
 {
     using std::endl;
@@ -275,6 +276,7 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
         << "<html>" << endl
             << "<head>" << endl
                 << "<title>Index of " << file_path.filename() << "</title>" << endl
+                << R"(<meta charset="UTF-8">)" << endl
             << "</head>" << endl
             << "<body>" << endl
             << "<h1>Index of " << file_path.filename() << "</h1>" << endl
@@ -322,8 +324,8 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
                 alt = "[VID]";
             }
         }
-        if (file_name.length() > 23)
-            file_name = file_name.substr(0, 20) + "..>";
+//        if (file_name.length() > 23)
+//            file_name = file_name.substr(0, 20) + "..>";
         oss << R"(<tr><td valign="top"><img src=")" << icon_path
             << R"(" alt=")" << alt << R"("></td><td><a href=")"
             << link_name << "\">" <<  file_name << R"(</a>               </td><td align="right">)" << modified_time
@@ -334,3 +336,4 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
         << "</body></html>";
     return oss.str();
 }
+
