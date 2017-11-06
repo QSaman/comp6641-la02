@@ -12,8 +12,8 @@ set(HTTPC_NAME "httpc")
 include(ucm)
 include(DefaultOptions)
 
-hunter_add_package(Boost COMPONENTS system filesystem)
-find_package(Boost CONFIG REQUIRED system filesystem)
+hunter_add_package(Boost COMPONENTS system filesystem thread)
+find_package(Boost CONFIG REQUIRED system filesystem thread)
 
 hunter_add_package(nlohmann_json)
 find_package(nlohmann_json CONFIG REQUIRED)
@@ -44,7 +44,7 @@ target_link_libraries(${HTTPC_NAME} ${LURLPARSER_LIBRARIES} ${HTTPC_LIB_NAME})
 
 ucm_add_dirs(src/libhttpfs TO LIBHTTPFS_SRC_LIST)
 add_library(${HTTPFS_LIB_NAME} STATIC ${LIBHTTPFS_SRC_LIST})
-target_link_libraries(${HTTPFS_LIB_NAME} Boost::system Boost::filesystem nlohmann_json ${HTTPC_LIB_NAME})
+target_link_libraries(${HTTPFS_LIB_NAME} Boost::system Boost::filesystem nlohmann_json Boost::thread ${HTTPC_LIB_NAME})
 
 ucm_add_dirs(src/httpfs TO HTTPFS_SRC_LIST)
 add_executable(${PROJECT_NAME} ${HTTPFS_SRC_LIST})

@@ -172,14 +172,15 @@ std::string httpPostMessage(const HttpMessage& client_msg) noexcept
             std::string body = generateHtmlMessage(msg.c_str(), "400 Bad Request", "No regular file");
             return constructServerMessage(partial_header, body);
         }
-        create_directories(full_path.parent_path());
-        std::ofstream out;
-        out.exceptions(std::ofstream::badbit | std::ofstream::failbit);
-        if (client_msg.is_text_body)
-            out.open(full_path.c_str());
-        else
-            out.open(full_path.c_str(), std::ofstream::binary);
-        out << client_msg.body;
+        write2File(full_path.c_str(), client_msg.body, !client_msg.is_text_body);
+//        create_directories(full_path.parent_path());
+//        std::ofstream out;
+//        out.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+//        if (client_msg.is_text_body)
+//            out.open(full_path.c_str());
+//        else
+//            out.open(full_path.c_str(), std::ofstream::binary);
+//        out << client_msg.body;
         std::string partial_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html";
         std::string body = generateHtmlMessage("File created/updated successfully!",
                                    "Operation Successfull", "Operation Successfull");

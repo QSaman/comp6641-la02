@@ -11,7 +11,22 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <nlohmann/json.hpp>
 
+#include <boost/thread/thread.hpp>
+#include <thread>
+#include <mutex>
+
+
 static std::unordered_map<std::string, std::string> ext2mime;
+
+static std::unordered_map<std::string, boost::shared_mutex> shared_mutex_list;
+static std::mutex map_mutex;
+
+boost::shared_mutex& fileMutex(const std::string& file_path)
+{
+    std::unique_lock<std::mutex>{map_mutex};
+    boost::shared_mutex& ret = shared_mutex_list[file_path];
+    return ret;
+}
 
 boost::filesystem::path createBoostDirPath(const std::string& dir_path)
 {
@@ -121,6 +136,7 @@ std::string xmlDirList(const std::string& dir_path, int level)
 
 std::string fileContent(const std::string& file_path, bool binary)
 {
+    boost::shared_lock<boost::shared_mutex> lock{fileMutex(file_path)};
     std::ifstream file;
     using namespace std;
 
@@ -132,6 +148,21 @@ std::string fileContent(const std::string& file_path, bool binary)
     file.open(file_path, mode);
     os << file.rdbuf();
     return os.str();
+}
+
+void write2File(const std::string& file_path, const std::string& content, bool binary)
+{
+    boost::unique_lock<boost::shared_mutex> lock{fileMutex(file_path)};
+    namespace fs = boost::filesystem;
+    fs::path path(file_path);
+    create_directories(path.parent_path());
+    std::ofstream out;
+    out.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+    if (!binary)
+        out.open(path.c_str());
+    else
+        out.open(path.c_str(), std::ofstream::binary);
+    out << content;
 }
 
 void initExt2Mime()
