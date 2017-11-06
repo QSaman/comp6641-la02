@@ -122,6 +122,7 @@ I've used the following external libraries. You don't need to download them. It'
 * [Boost C++ Libraries:](http://www.boost.org/)
     * Boost.Filesystem for facilities to manipulate files and directories, and the paths that identify them
     * Boost Property Tree for generating XML results
+    * Boost thread for concurrent read and exclusive write
 * [nlohmann json](https://github.com/nlohmann/json) for generating JSON results
 * [cxxopts](https://github.com/jarro2783/cxxopts) for command line interface
 * [LUrlParser](https://github.com/corporateshark/LUrlParser) for parsing URLs
