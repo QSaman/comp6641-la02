@@ -49,7 +49,7 @@ std::string textDirList(const std::string& dir_path)
     std::string ret;
     path p = createBoostDirPath(dir_path);
     for (directory_entry& f : directory_iterator(p))
-        ret += std::string(f.path().filename().c_str()) + "\n";
+        ret += std::string(f.path().filename().string()) + "\n";
     return ret;
 }
 
@@ -63,7 +63,7 @@ nlohmann::json jsonDirList(const boost::filesystem::path& p, int level)
     {
         bool directory = false;
         nlohmann::json object = json::object();
-        object["name"] = f.path().filename().c_str();
+        object["name"] = f.path().filename().string();
         if (is_directory(f))
         {
             object["type"] = "directory";
@@ -109,7 +109,7 @@ boost::property_tree::ptree xmlDirList(const boost::filesystem::path& p, int lev
         }
         else if (fs::is_regular_file(f))
             node_name = "file";
-        node.put("name", f.path().filename().c_str());
+        node.put("name", f.path().filename().string());
         root.add_child(node_name, node);
         if (directory && level > 0)
         {
@@ -137,6 +137,8 @@ std::string xmlDirList(const std::string& dir_path, int level)
 std::string fileContent(const std::string& file_path, bool binary)
 {
     boost::shared_lock<boost::shared_mutex> lock{fileMutex(file_path)};
+    if (verbose)
+        std::cout << "Got reader lock" << std::endl;
     std::ifstream file;
     using namespace std;
 
@@ -153,15 +155,20 @@ std::string fileContent(const std::string& file_path, bool binary)
 void write2File(const std::string& file_path, const std::string& content, bool binary)
 {
     boost::unique_lock<boost::shared_mutex> lock{fileMutex(file_path)};
+    if (verbose)
+        std::cout << "Got writer lock" << std::endl;
+//    std::cout << "sleep for 30s" << std::endl;
+//    std::this_thread::sleep_for(std::chrono::seconds(30));
+//    std::cout << "waking up" << std::endl;
     namespace fs = boost::filesystem;
     fs::path path(file_path);
     create_directories(path.parent_path());
     std::ofstream out;
     out.exceptions(std::ofstream::badbit | std::ofstream::failbit);
     if (!binary)
-        out.open(path.c_str());
+        out.open(path.string());
     else
-        out.open(path.c_str(), std::ofstream::binary);
+        out.open(path.string(), std::ofstream::binary);
     out << content;
 }
 
@@ -300,17 +307,17 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
     fs::path full_path = dir_path / file_path;
     std::string relative_parent;
     if (full_path != root_dir_path)
-        relative_parent = file_path.parent_path().c_str();
+        relative_parent = file_path.parent_path().string();
 
     std::ostringstream oss(R"(<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">)");
     oss << endl
         << "<html>" << endl
             << "<head>" << endl
-                << "<title>Index of " << file_path.filename() << "</title>" << endl
+                << "<title>Index of " << file_path.filename().string() << "</title>" << endl
                 << R"(<meta charset="UTF-8">)" << endl
             << "</head>" << endl
             << "<body>" << endl
-            << "<h1>Index of " << file_path.filename() << "</h1>" << endl
+            << "<h1>Index of " << file_path.filename().string() << "</h1>" << endl
             << "<table>" << endl;
     oss << R"(<tr><th valign="top"><img src="/icons/blank.gif" alt="[ICO]"></th><th>Name</th><th>Last modified</th><th>Size</th><th>Description</th></tr>)" << endl;
     oss << R"(<tr><th colspan="5"><hr></th></tr>)" << endl;
@@ -321,9 +328,9 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
     {
         std::string icon_path = "/icons/unknown.gif";
         std::string alt = "[   ]";
-        std::string file_name = f.path().filename().c_str();
+        std::string file_name = f.path().filename().string();
         fs::path f_name(url_encode(file_name));
-        std::string link_name = (relative_dir_path / f_name).c_str();
+        std::string link_name = (relative_dir_path / f_name).string();
         unsigned long file_size = 0;
         std::string file_size_str;
         auto mod_time_t = fs::last_write_time(f.path());
@@ -338,7 +345,7 @@ std::string htmlDirList(const std::string& root_dir_path, const std::string& rel
         {
             file_size = fs::file_size(f.path());
             file_size_str = human_readable_file_size(file_size);
-            auto mime_type = getFileMimeType(f.path().filename().c_str());
+            auto mime_type = getFileMimeType(f.path().filename().string());
             if (HttpClient::isTextBody(mime_type))
             {
                 icon_path = "/icons/text.gif";

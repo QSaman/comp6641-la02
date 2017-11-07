@@ -6,6 +6,8 @@
 #include <sstream>
 #include <cxxopts.hpp>
 #include <LUrlParser.h>
+#include <memory>
+#include <iterator>
 
 #include "../libhttpc/http_client.h"
 
@@ -60,23 +62,17 @@ void handle_post_data()
         }
         auto file_path = options["file"].as<std::string>();
         std::ifstream fin;
-        std::stringstream ss;
+        fin.open(file_path, std::ifstream::binary);
         fin.exceptions(std::ifstream::badbit | std::ifstream::failbit);
         try
         {
-            fin.open(file_path);
-            ss << fin.rdbuf();
-            std::string line;
-            bool first = true;
-            //fstream handles different end-of-line in different platforms so we don't need to use: line != '\r'
-            while (std::getline(ss, line))
-            {
-                if (first)
-                    first = false;
-                else
-                    line = "\r\n" + line;   //HTTP line break
-                post_data += line;
-            }
+            fin.seekg(0, fin.end);
+            auto length = fin.tellg();
+            fin.seekg(0, fin.beg);
+            std::unique_ptr<char> buffer(new char[length]);
+            fin.read(buffer.get(), length);
+            post_data.reserve(static_cast<unsigned>(length));
+            std::copy(buffer.get(), buffer.get() + length, std::back_inserter(post_data));
         }
         catch(std::ifstream::failure e)
         {

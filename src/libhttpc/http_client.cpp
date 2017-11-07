@@ -21,16 +21,10 @@ HttpMessage HttpClient::sendGetCommand(const std::string& url, const std::string
     auto message = oss.str();
     if (verbose)
         std::cout << "GET message:" << std::endl << message << "------------" << std::endl;
-    int port = 80;
+    std::string port = "80";
     if (!lurl.m_Port.empty())
-    {
-        std::stringstream ss(lurl.m_Port);
-        ss >> port;
-    }
-    auto connection = TcpConnectionFactory::createInstance(lurl.m_Host, port);
-    connection->connect();
-    connection->write(message);
-    auto reply = extractMessage(connection->read());
+        port = lurl.m_Port;
+    auto reply = requestAndReply(lurl.m_Host, port, message);
     if (verbose)
         std::cout << "Reply Header:" << std::endl << reply.header << "------------" << std::endl;
     return reply;
@@ -49,18 +43,12 @@ HttpMessage HttpClient::sendPostCommand(const std::string& url, const std::strin
     oss << "POST /";
     constructMessage(oss, lurl, header, data);
     auto message = oss.str();
-    int port = 80;
-    if (!lurl.m_Port.empty())
-    {
-        std::stringstream ss(lurl.m_Port);
-        ss >> port;
-    }
     if (verbose)
         std::cout << "POST message:" << std::endl << message << "------------" << std::endl;
-    auto connection = TcpConnectionFactory::createInstance(lurl.m_Host, port);
-    connection->connect();
-    connection->write(message);
-    auto reply = extractMessage(connection->read());
+    std::string port = "80";
+    if (!lurl.m_Port.empty())
+        port = lurl.m_Port;
+    auto reply = requestAndReply(lurl.m_Host, port, message);
     if (verbose)
         std::cout << "Reply Header:" << std::endl << reply.header << "------------" << std::endl;
     return reply;
@@ -76,7 +64,56 @@ bool HttpClient::isTextBody(const std::string& mime)
    return false;
 }
 
-HttpMessage HttpClient::extractMessage(const std::string& message, bool read_body)
+HttpMessage HttpClient::readHttpMessage(asio::ip::tcp::socket& socket, asio::streambuf& buffer)
+{
+    auto n = asio::read_until(socket, buffer, "\r\n\r\n");
+    auto iter = asio::buffers_begin(buffer.data());
+    auto http_header = std::string(iter, iter + static_cast<long>(n));
+    HttpMessage http_message = parseHttpMessage(http_header, false);
+    std::string length_str = http_message.http_header["Content-Length"];
+    unsigned int length = 0;
+    if (!length_str.empty())
+    {
+        std::istringstream iss(length_str);
+        iss >> length;
+    }
+    //We need to use the same buffer after consuming the header data:
+    //It is important to remember that there may be additional data after the delimiter.
+    //For more information: http://think-async.com/Asio/asio-1.11.0/doc/asio/overview/core/line_based.html
+    buffer.consume(n);
+    auto partial_len = std::min(static_cast<unsigned int>(buffer.size()), length);
+    std::string body;
+    if (partial_len > 0)
+    {
+        iter = asio::buffers_begin(buffer.data());
+        body = std::string(iter, iter + partial_len);
+        buffer.consume(partial_len);
+    }
+    auto num_bytes = length - body.length();
+    if (num_bytes > 0)
+    {
+        n = asio::read(socket, buffer, asio::transfer_exactly(num_bytes));
+        iter = asio::buffers_begin(buffer.data());
+        body += std::string(iter, iter + static_cast<long>(num_bytes));
+        buffer.consume(num_bytes);
+    }
+    http_message.body = body;
+    return http_message;
+}
+
+HttpMessage HttpClient::requestAndReply(const std::string& host, const std::string& port, const std::string& message)
+{
+    asio::io_service io_service;
+    using asio::ip::tcp;
+    tcp::socket socket(io_service);
+    tcp::resolver resolver(io_service);
+    asio::connect(socket, resolver.resolve({host, port}));
+    asio::write(socket, asio::buffer(message));
+    asio::streambuf buffer;
+    return readHttpMessage(socket, buffer);
+}
+
+HttpMessage HttpClient::parseHttpMessage(const std::string& message, bool read_body)
 {
     using namespace std;
     stringstream ss(message);

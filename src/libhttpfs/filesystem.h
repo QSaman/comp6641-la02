@@ -3,6 +3,7 @@
 #include <iosfwd>
 
 extern std::string mime_file;
+extern bool verbose;
 
 std::string textDirList(const std::string& dir_path);
 std::string jsonDirList(const std::string& dir_path, int level = 0);
