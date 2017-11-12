@@ -2,9 +2,9 @@
 
 root_path="../httpfs_root/Star Wars"
 url_path="Star%20Wars"
-reader_file="Obi-Wan Kenobi and Qui-Gon Jinn vs Darth Maul - Blu Ray HD.mp4"
-writer_file="'Rogue One' Spliced with 'A New Hope' v.2-209263699.mp4"
-common_name="foo.mp4"
+reader_file="Ben Kenobi vs Darth Vader - A New Hope [1080p HD]-sq51w34Hg9I.webm"
+writer_file="Luke Learns Vader Is His Father [1080p]-GueBXRYVhe0.webm"
+common_name="foo.webm"
 port=8080
 httpc="../../httpc"
 
