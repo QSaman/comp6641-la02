@@ -73,6 +73,8 @@ void runUdpServer(unsigned short port)
     asio::io_service io_service;
     std::cout << "Listening on port " << port << std::endl;
     std::cout << "root directory is: " << root_dir_path << std::endl << std::endl;
+    std::cout << "Loading MIME types..." << std::endl;
+    initExt2Mime();
     try
     {
         tcp::acceptor passive_socket(io_service, tcp::endpoint(tcp::v4(), port));

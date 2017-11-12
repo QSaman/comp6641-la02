@@ -198,8 +198,6 @@ void initExt2Mime()
 
 std::string getFileMimeType(const std::string& file_path)
 {
-    if (ext2mime.empty())
-        initExt2Mime();
     using namespace boost::filesystem;
     path fp(file_path);
     auto extension_str = extension(fp);
